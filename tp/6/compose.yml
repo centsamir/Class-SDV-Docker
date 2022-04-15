@@ -1,0 +1,27 @@
+services:
+  web1:
+    image: nginx
+    networks:
+      - web
+    volumes:
+      - ~/Documents/tp_docker/6/web1:/usr/share/nginx/html
+  web2:
+    image: nginx
+    networks:
+      - web
+    volumes:
+      - ~/Documents/tp_docker/6/web2:/usr/share/nginx/html
+  myhaproxy:
+    image: haproxy
+    networks:
+      - web
+    ports:
+      - "80:80"
+    depends_on:
+      - web1
+      - web2
+    volumes:
+      - ~/Documents/tp_docker/6/myhaproxy:/usr/local/etc/haproxy
+
+networks:
+  web:

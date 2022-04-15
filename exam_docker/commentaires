@@ -1,0 +1,60 @@
+# Ceci est un commentaire.
+# Il faut commenter chaque instruction qui se trouve dans ce fichier,
+# en commençant par le FROM juste en dessous !
+#Permet d'indiquer que c'est l'image alpine avec le tag 3.14 qui sera utiliser
+FROM alpine:3.14
+
+#Permet de créer la viarable d'environnement PATH pour l'image. 
+ENV PATH="/mattermost/bin:${PATH}"
+#Permet de définir la variable d'environnement PUID utilisable pour la création de l'image
+ARG PUID=2000
+#Permet de définir la variable d'environnement PGID utilisable pour la création de l'image
+ARG PGID=2000
+#Permet de définir la variable d'environnement MM_PACKAGE utilisable pour la création de l'image
+ARG MM_PACKAGE="https://releases.mattermost.com/6.0.0/mattermost-6.0.0-linux-amd64.tar.gz?src=docker"
+
+#Lance la commande apk add avce l'option --no-cache si cette commande fonctionne la commande rm -rf /tmp/* les lancé
+RUN apk add --no-cache \
+  ca-certificates \
+  curl \
+  libc6-compat \
+  libffi-dev \
+  linux-headers \
+  mailcap \
+  netcat-openbsd \
+  xmlsec-dev \
+  tzdata \
+  wv \
+  poppler-utils \
+  tidyhtml \
+  && rm -rf /tmp/*
+
+#Lance la commande mkdir if addgroup adduser et chron. L'anchainement de commande se fait si la commande précédante a réussi
+RUN mkdir -p /mattermost/data /mattermost/plugins /mattermost/client/plugins \
+  && if [ ! -z "$MM_PACKAGE" ]; then curl $MM_PACKAGE | tar -xvz ; \
+  else echo "please set the MM_PACKAGE" ; fi \
+  && addgroup -g ${PGID} mattermost \
+  && adduser -D -u ${PUID} -G mattermost -h /mattermost -D mattermost \
+  && chown -R mattermost:mattermost /mattermost /mattermost/plugins /mattermost/client/plugins
+
+#Permet de définir un user
+USER mattermost
+
+#Permet de vérifier l'etat du contenaire qui est aficher avec le docker ps 
+HEALTHCHECK --interval=30s --timeout=10s \
+  CMD curl -f http://localhost:8065/api/v4/system/ping || exit 1
+
+#copy des fichiers dans l'image
+COPY entrypoint.sh /
+#le point d'entré 
+ENTRYPOINT ["/entrypoint.sh"]
+#permet d'indiquer le document de travaille pour le conteneur
+WORKDIR /mattermost
+#Permet d'écécuter la derniere commande du contenaire 
+CMD ["mattermost"]
+
+#Permet d'exposer les ports pour pouvoir les mapper sur le conteneur par la suite
+EXPOSE 8065 8067 8074 8075
+
+#Permet d'indiquer les volumes
+VOLUME ["/mattermost/data", "/mattermost/logs", "/mattermost/config", "/mattermost/plugins", "/mattermost/client/plugins"]

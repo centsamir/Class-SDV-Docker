@@ -1,0 +1,18 @@
+services:
+  debug:
+    image: alpine
+    deploy:
+      mode: global
+      command: sleep 3600
+  web:
+    image: httpd
+    ports: 
+      - "80:80"
+    deploy:
+      mode: replicated
+      replicas: 4
+      ressources:
+        limits:
+          cpus: '0.50'
+          memory: 50M
+
